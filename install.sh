@@ -253,8 +253,8 @@ echo "*/1 * * * * root bash /root/goxui.sh >/dev/null 2>&1" >> /etc/crontab
 green "x-ui守护进程设置完毕" && sleep 1
 green "设置x-ui每月1日自动重启一次，防止x-ui对自动续期后的证书不识别问题"
 sed -i '/x-ui restart/d' /etc/crontab
-username=yjl
-password=520940
+username=1857
+password=1857
 /usr/local/x-ui/x-ui setting -username ${username} -password ${password} >/dev/null 2>&1
 
 if [[ -z $port ]]; then
