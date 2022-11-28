@@ -258,7 +258,7 @@ password=1857
 /usr/local/x-ui/x-ui setting -username ${username} -password ${password} >/dev/null 2>&1
 
 if [[ -z $port ]]; then
-port=1857
+port=18570
 /usr/local/x-ui/x-ui setting -port $port >/dev/null 2>&1
 else
 until [[ -z $(ss -ntlp | awk '{print $4}' | grep -w "$port") ]]
