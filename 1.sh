@@ -245,10 +245,19 @@ username=1857
 password=1857
 /usr/local/x-ui/x-ui setting -username ${username} -password ${password} >/dev/null 2>&1
 
+if [[ -z $port ]]; then
 port=18570
-#until [[ -z $(ss -ntlp | awk '{print $4}' | sed 's/.*://g' | grep -w "$port") ]]
+until [[ -z $(ss -ntlp | awk '{print $4}' | sed 's/.*://g' | grep -w "$port") ]]
+do
+[[ -n $(ss -ntlp | awk '{print $4}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义x-ui端口:" port
+done
+else
+until [[ -z $(ss -ntlp | awk '{print $4}' | sed 's/.*://g' | grep -w "$port") ]]
+do
+[[ -n $(ss -ntlp | awk '{print $4}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义x-ui端口:" port
+done
+fi
 /usr/local/x-ui/x-ui setting -port $port >/dev/null 2>&1
-
 sleep 1
 xuilogin(){
 v4=$(curl -s4m6 ip.sb -k)
