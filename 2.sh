@@ -130,21 +130,23 @@ install_x-ui() {
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install
-	v4=$(curl -s4m6 ip.sb -k)
-	v6=$(curl -s6m6 ip.sb -k)
-if [[ -z $v4 ]]; then
-int="${green}请在浏览器地址栏复制${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
-elif [[ -n $v4 && -n $v6 ]]; then
-int="${green}请在浏览器地址栏复制${plain}  ${bblue}$v4:$config_port${plain}  ${yellow}或者${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
-else
-int="${green}请在浏览器地址栏复制${plain}  ${bblue}$v4:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
-fi
     #echo -e "如果是全新安装，默认网页端口为 ${green}54321${plain}，用户名和密码默认都是 ${green}admin${plain}"
     #echo -e "请自行确保此端口没有被其他程序占用，${yellow}并且确保 54321 端口已放行${plain}"
     #    echo -e "若想将 54321 修改为其它端口，输入 x-ui 命令进行修改，同样也要确保你修改的端口也是放行的"
     #echo -e ""
     #echo -e "如果是更新面板，则按你之前的方式访问面板"
     #echo -e ""
+	
+	v4=$(curl -s4m6 ip.sb -k)
+	v6=$(curl -s6m6 ip.sb -k)
+	if [[ -z $v4 ]]; then
+		int="${green}请在浏览器地址栏复制${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
+	elif [[ -n $v4 && -n $v6 ]]; then
+		int="${green}请在浏览器地址栏复制${plain}  ${bblue}$v4:$config_port${plain}  ${yellow}或者${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
+	else
+		int="${green}请在浏览器地址栏复制${plain}  ${bblue}$v4:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
+	fi
+	
 	
 	
     systemctl daemon-reload
