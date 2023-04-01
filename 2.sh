@@ -8,7 +8,7 @@ plain='\033[0m'
 cur_dir=$(pwd)
 
 # check root
-[[ $EUID -ne 0 ]] && echo -e "${red}´íÎó£º${plain} ±ØĞëÊ¹ÓÃrootÓÃ»§ÔËĞĞ´Ë½Å±¾£¡\n" && exit 1
+[[ $EUID -ne 0 ]] && echo -e "${red}é”™è¯¯ï¼š${plain} å¿…é¡»ä½¿ç”¨rootç”¨æˆ·è¿è¡Œæ­¤è„šæœ¬ï¼\n" && exit 1
 
 # check os
 if [[ -f /etc/redhat-release ]]; then
@@ -26,7 +26,7 @@ elif cat /proc/version | grep -Eqi "ubuntu"; then
 elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
     release="centos"
 else
-    echo -e "${red}Î´¼ì²âµ½ÏµÍ³°æ±¾£¬ÇëÁªÏµ½Å±¾×÷Õß£¡${plain}\n" && exit 1
+    echo -e "${red}æœªæ£€æµ‹åˆ°ç³»ç»Ÿç‰ˆæœ¬ï¼Œè¯·è”ç³»è„šæœ¬ä½œè€…ï¼${plain}\n" && exit 1
 fi
 
 arch=$(arch)
@@ -39,13 +39,13 @@ elif [[ $arch == "s390x" ]]; then
     arch="s390x"
 else
     arch="amd64"
-    echo -e "${red}¼ì²â¼Ü¹¹Ê§°Ü£¬Ê¹ÓÃÄ¬ÈÏ¼Ü¹¹: ${arch}${plain}"
+    echo -e "${red}æ£€æµ‹æ¶æ„å¤±è´¥ï¼Œä½¿ç”¨é»˜è®¤æ¶æ„: ${arch}${plain}"
 fi
 
-echo "¼Ü¹¹: ${arch}"
+echo "æ¶æ„: ${arch}"
 
 if [ $(getconf WORD_BIT) != '32' ] && [ $(getconf LONG_BIT) != '64' ]; then
-    echo "±¾Èí¼ş²»Ö§³Ö 32 Î»ÏµÍ³(x86)£¬ÇëÊ¹ÓÃ 64 Î»ÏµÍ³(x86_64)£¬Èç¹û¼ì²âÓĞÎó£¬ÇëÁªÏµ×÷Õß"
+    echo "æœ¬è½¯ä»¶ä¸æ”¯æŒ 32 ä½ç³»ç»Ÿ(x86)ï¼Œè¯·ä½¿ç”¨ 64 ä½ç³»ç»Ÿ(x86_64)ï¼Œå¦‚æœæ£€æµ‹æœ‰è¯¯ï¼Œè¯·è”ç³»ä½œè€…"
     exit -1
 fi
 
@@ -61,15 +61,15 @@ fi
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}ÇëÊ¹ÓÃ CentOS 7 »ò¸ü¸ß°æ±¾µÄÏµÍ³£¡${plain}\n" && exit 1
+        echo -e "${red}è¯·ä½¿ç”¨ CentOS 7 æˆ–æ›´é«˜ç‰ˆæœ¬çš„ç³»ç»Ÿï¼${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}ÇëÊ¹ÓÃ Ubuntu 16 »ò¸ü¸ß°æ±¾µÄÏµÍ³£¡${plain}\n" && exit 1
+        echo -e "${red}è¯·ä½¿ç”¨ Ubuntu 16 æˆ–æ›´é«˜ç‰ˆæœ¬çš„ç³»ç»Ÿï¼${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}ÇëÊ¹ÓÃ Debian 8 »ò¸ü¸ß°æ±¾µÄÏµÍ³£¡${plain}\n" && exit 1
+        echo -e "${red}è¯·ä½¿ç”¨ Debian 8 æˆ–æ›´é«˜ç‰ˆæœ¬çš„ç³»ç»Ÿï¼${plain}\n" && exit 1
     fi
 fi
 
@@ -97,22 +97,22 @@ install_x-ui() {
     if [ $# == 0 ]; then
         last_version=$(curl -Ls "https://api.github.com/repos/vaxilu/x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}¼ì²â x-ui °æ±¾Ê§°Ü£¬¿ÉÄÜÊÇ³¬³ö Github API ÏŞÖÆ£¬ÇëÉÔºóÔÙÊÔ£¬»òÊÖ¶¯Ö¸¶¨ x-ui °æ±¾°²×°${plain}"
+            echo -e "${red}æ£€æµ‹ x-ui ç‰ˆæœ¬å¤±è´¥ï¼Œå¯èƒ½æ˜¯è¶…å‡º Github API é™åˆ¶ï¼Œè¯·ç¨åå†è¯•ï¼Œæˆ–æ‰‹åŠ¨æŒ‡å®š x-ui ç‰ˆæœ¬å®‰è£…${plain}"
             exit 1
         fi
-        echo -e "¼ì²âµ½ x-ui ×îĞÂ°æ±¾£º${last_version}£¬¿ªÊ¼°²×°"
+        echo -e "æ£€æµ‹åˆ° x-ui æœ€æ–°ç‰ˆæœ¬ï¼š${last_version}ï¼Œå¼€å§‹å®‰è£…"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz https://github.com/vaxilu/x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}ÏÂÔØ x-ui Ê§°Ü£¬ÇëÈ·±£ÄãµÄ·şÎñÆ÷ÄÜ¹»ÏÂÔØ Github µÄÎÄ¼ş${plain}"
+            echo -e "${red}ä¸‹è½½ x-ui å¤±è´¥ï¼Œè¯·ç¡®ä¿ä½ çš„æœåŠ¡å™¨èƒ½å¤Ÿä¸‹è½½ Github çš„æ–‡ä»¶${plain}"
             exit 1
         fi
     else
         last_version=$1
         url="https://github.com/vaxilu/x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
-        echo -e "¿ªÊ¼°²×° x-ui v$1"
+        echo -e "å¼€å§‹å®‰è£… x-ui v$1"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}ÏÂÔØ x-ui v$1 Ê§°Ü£¬ÇëÈ·±£´Ë°æ±¾´æÔÚ${plain}"
+            echo -e "${red}ä¸‹è½½ x-ui v$1 å¤±è´¥ï¼Œè¯·ç¡®ä¿æ­¤ç‰ˆæœ¬å­˜åœ¨${plain}"
             exit 1
         fi
     fi
@@ -132,43 +132,43 @@ install_x-ui() {
     config_after_install
 	v4=$(curl -s4m6 ip.sb -k)
 	v6=$(curl -s6m6 ip.sb -k)
-	if [[ -z $v4 ]]; then
-int="${green}ÇëÔÚä¯ÀÀÆ÷µØÖ·À¸¸´ÖÆ${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}½øÈëx-uiµÇÂ¼½çÃæ\nµ±Ç°x-uiµÇÂ¼ÓÃ»§Ãû£º${plain}${bblue}${config_account}${plain}${green} \nµ±Ç°x-uiµÇÂ¼ÃÜÂë£º${plain}${bblue}${config_password}${plain}"
+if [[ -z $v4 ]]; then
+int="${green}è¯·åœ¨æµè§ˆå™¨åœ°å€æ å¤åˆ¶${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}è¿›å…¥x-uiç™»å½•ç•Œé¢\nå½“å‰x-uiç™»å½•ç”¨æˆ·åï¼š${plain}${bblue}${config_account}${plain}${green} \nå½“å‰x-uiç™»å½•å¯†ç ï¼š${plain}${bblue}${config_password}${plain}"
 elif [[ -n $v4 && -n $v6 ]]; then
-int="${green}ÇëÔÚä¯ÀÀÆ÷µØÖ·À¸¸´ÖÆ${plain}  ${bblue}$v4:$config_port${plain}  ${yellow}»òÕß${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}½øÈëx-uiµÇÂ¼½çÃæ\nµ±Ç°x-uiµÇÂ¼ÓÃ»§Ãû£º${plain}${bblue}${config_account}${plain}${green} \nµ±Ç°x-uiµÇÂ¼ÃÜÂë£º${plain}${bblue}${config_password}${plain}"
+int="${green}è¯·åœ¨æµè§ˆå™¨åœ°å€æ å¤åˆ¶${plain}  ${bblue}$v4:$config_port${plain}  ${yellow}æˆ–è€…${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}è¿›å…¥x-uiç™»å½•ç•Œé¢\nå½“å‰x-uiç™»å½•ç”¨æˆ·åï¼š${plain}${bblue}${config_account}${plain}${green} \nå½“å‰x-uiç™»å½•å¯†ç ï¼š${plain}${bblue}${config_password}${plain}"
 else
-int="${green}ÇëÔÚä¯ÀÀÆ÷µØÖ·À¸¸´ÖÆ${plain}  ${bblue}$v4:$config_port${plain}  ${green}½øÈëx-uiµÇÂ¼½çÃæ\nµ±Ç°x-uiµÇÂ¼ÓÃ»§Ãû£º${plain}${bblue}${config_account}${plain}${green} \nµ±Ç°x-uiµÇÂ¼ÃÜÂë£º${plain}${bblue}${config_password}${plain}"
+int="${green}è¯·åœ¨æµè§ˆå™¨åœ°å€æ å¤åˆ¶${plain}  ${bblue}$v4:$config_port${plain}  ${green}è¿›å…¥x-uiç™»å½•ç•Œé¢\nå½“å‰x-uiç™»å½•ç”¨æˆ·åï¼š${plain}${bblue}${config_account}${plain}${green} \nå½“å‰x-uiç™»å½•å¯†ç ï¼š${plain}${bblue}${config_password}${plain}"
 fi
-    #echo -e "Èç¹ûÊÇÈ«ĞÂ°²×°£¬Ä¬ÈÏÍøÒ³¶Ë¿ÚÎª ${green}54321${plain}£¬ÓÃ»§ÃûºÍÃÜÂëÄ¬ÈÏ¶¼ÊÇ ${green}admin${plain}"
-    #echo -e "Çë×ÔĞĞÈ·±£´Ë¶Ë¿ÚÃ»ÓĞ±»ÆäËû³ÌĞòÕ¼ÓÃ£¬${yellow}²¢ÇÒÈ·±£ 54321 ¶Ë¿ÚÒÑ·ÅĞĞ${plain}"
-    #    echo -e "ÈôÏë½« 54321 ĞŞ¸ÄÎªÆäËü¶Ë¿Ú£¬ÊäÈë x-ui ÃüÁî½øĞĞĞŞ¸Ä£¬Í¬ÑùÒ²ÒªÈ·±£ÄãĞŞ¸ÄµÄ¶Ë¿ÚÒ²ÊÇ·ÅĞĞµÄ"
+    #echo -e "å¦‚æœæ˜¯å…¨æ–°å®‰è£…ï¼Œé»˜è®¤ç½‘é¡µç«¯å£ä¸º ${green}54321${plain}ï¼Œç”¨æˆ·åå’Œå¯†ç é»˜è®¤éƒ½æ˜¯ ${green}admin${plain}"
+    #echo -e "è¯·è‡ªè¡Œç¡®ä¿æ­¤ç«¯å£æ²¡æœ‰è¢«å…¶ä»–ç¨‹åºå ç”¨ï¼Œ${yellow}å¹¶ä¸”ç¡®ä¿ 54321 ç«¯å£å·²æ”¾è¡Œ${plain}"
+    #    echo -e "è‹¥æƒ³å°† 54321 ä¿®æ”¹ä¸ºå…¶å®ƒç«¯å£ï¼Œè¾“å…¥ x-ui å‘½ä»¤è¿›è¡Œä¿®æ”¹ï¼ŒåŒæ ·ä¹Ÿè¦ç¡®ä¿ä½ ä¿®æ”¹çš„ç«¯å£ä¹Ÿæ˜¯æ”¾è¡Œçš„"
     #echo -e ""
-    #echo -e "Èç¹ûÊÇ¸üĞÂÃæ°å£¬Ôò°´ÄãÖ®Ç°µÄ·½Ê½·ÃÎÊÃæ°å"
+    #echo -e "å¦‚æœæ˜¯æ›´æ–°é¢æ¿ï¼Œåˆ™æŒ‰ä½ ä¹‹å‰çš„æ–¹å¼è®¿é—®é¢æ¿"
     #echo -e ""
 	
 	
     systemctl daemon-reload
     systemctl enable x-ui
     systemctl start x-ui
-    echo -e "${green}x-ui v${last_version}${plain} °²×°Íê³É£¬Ãæ°åÒÑÆô¶¯£¬"
+    echo -e "${green}x-ui v${last_version}${plain} å®‰è£…å®Œæˆï¼Œé¢æ¿å·²å¯åŠ¨ï¼Œ"
     echo -e ""
-    echo -e "x-ui ¹ÜÀí½Å±¾Ê¹ÓÃ·½·¨: "
+    echo -e "x-ui ç®¡ç†è„šæœ¬ä½¿ç”¨æ–¹æ³•: "
     echo -e "----------------------------------------------"
-    echo -e "x-ui              - ÏÔÊ¾¹ÜÀí²Ëµ¥ (¹¦ÄÜ¸ü¶à)"
-    echo -e "x-ui start        - Æô¶¯ x-ui Ãæ°å"
-    echo -e "x-ui stop         - Í£Ö¹ x-ui Ãæ°å"
-    echo -e "x-ui restart      - ÖØÆô x-ui Ãæ°å"
-    echo -e "x-ui status       - ²é¿´ x-ui ×´Ì¬"
-    echo -e "x-ui enable       - ÉèÖÃ x-ui ¿ª»ú×ÔÆô"
-    echo -e "x-ui disable      - È¡Ïû x-ui ¿ª»ú×ÔÆô"
-    echo -e "x-ui log          - ²é¿´ x-ui ÈÕÖ¾"
-    echo -e "x-ui v2-ui        - Ç¨ÒÆ±¾»úÆ÷µÄ v2-ui ÕËºÅÊı¾İÖÁ x-ui"
-    echo -e "x-ui update       - ¸üĞÂ x-ui Ãæ°å"
-    echo -e "x-ui install      - °²×° x-ui Ãæ°å"
-    echo -e "x-ui uninstall    - Ğ¶ÔØ x-ui Ãæ°å"
+    echo -e "x-ui              - æ˜¾ç¤ºç®¡ç†èœå• (åŠŸèƒ½æ›´å¤š)"
+    echo -e "x-ui start        - å¯åŠ¨ x-ui é¢æ¿"
+    echo -e "x-ui stop         - åœæ­¢ x-ui é¢æ¿"
+    echo -e "x-ui restart      - é‡å¯ x-ui é¢æ¿"
+    echo -e "x-ui status       - æŸ¥çœ‹ x-ui çŠ¶æ€"
+    echo -e "x-ui enable       - è®¾ç½® x-ui å¼€æœºè‡ªå¯"
+    echo -e "x-ui disable      - å–æ¶ˆ x-ui å¼€æœºè‡ªå¯"
+    echo -e "x-ui log          - æŸ¥çœ‹ x-ui æ—¥å¿—"
+    echo -e "x-ui v2-ui        - è¿ç§»æœ¬æœºå™¨çš„ v2-ui è´¦å·æ•°æ®è‡³ x-ui"
+    echo -e "x-ui update       - æ›´æ–° x-ui é¢æ¿"
+    echo -e "x-ui install      - å®‰è£… x-ui é¢æ¿"
+    echo -e "x-ui uninstall    - å¸è½½ x-ui é¢æ¿"
     echo -e "----------------------------------------------"
 }
 
-echo -e "${green}¿ªÊ¼°²×°${plain}"
+echo -e "${green}å¼€å§‹å®‰è£…${plain}"
 install_base
 install_x-ui $1
