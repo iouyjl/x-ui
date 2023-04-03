@@ -90,9 +90,9 @@ fi
 
 install_base() {
     if [[ x"${release}" == x"centos" ]]; then
-        yum install wget curl tar -y
+        yum install epel-release -y && yum install wget curl tar -y
     else
-        apt install wget curl tar -y
+        apt update && apt install wget curl tar -y
     fi
 
 	echo -e "${green}关闭防火墙，开放所有端口规则……${plain}"
