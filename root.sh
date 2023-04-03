@@ -24,6 +24,7 @@ $su sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ss
 $su service sshd restart
 green "VPS当前用户名：root"
 green "vps当前root密码：$mima"
+sudo -i
 else
 red "未输入相关字符，启用root账户或root密码更改失败" 
 fi
