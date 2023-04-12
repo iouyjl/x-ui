@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -46,12 +46,10 @@ fi
 
 arch=$(arch)
 
-if [[ $arch == "x86_64" || $arch == "x64" || $arch == "amd64" ]]; then
+if [[ $arch == "x86_64" || $arch == "x64" || $arch == "s390x" || $arch == "amd64" ]]; then
     arch="amd64"
 elif [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     arch="arm64"
-elif [[ $arch == "s390x" ]]; then
-    arch="s390x"
 else
     arch="amd64"
     echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
@@ -207,6 +205,7 @@ install_x-ui() {
     echo -e "x-ui update       - 更新 x-ui 面板"
     echo -e "x-ui install      - 安装 x-ui 面板"
     echo -e "x-ui uninstall    - 卸载 x-ui 面板"
+    echo -e "x-ui geo          - 更新 geo  数据"
     echo -e "----------------------------------------------"
     rm -rf x-ui.sh
 }
