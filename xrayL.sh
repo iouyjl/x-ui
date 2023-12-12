@@ -96,7 +96,7 @@ config_xray() {
 	echo ""
 	echo "生成 $config_type 配置完成"
 	echo -e "$int"
-	echo "ip-v4:${bblue}$(curl -s4m6 ip.sb -k)${plain}"
+	echo "ip-v4:${bblue}$v4"
   	echo "ip-v6:$(curl -s6m6 ip.sb -k)"
 	echo "起始端口:$START_PORT"
 	echo "结束端口:$(($START_PORT + $i - 1))"
