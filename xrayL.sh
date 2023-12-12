@@ -87,9 +87,11 @@ config_xray() {
 	systemctl --no-pager status xrayL.service
  	v4=$(curl -s4m6 ip.sb -k)
 	v6=$(curl -s6m6 ip.sb -k)
+ 	int="${green}请在浏览器地址栏复制${plain}  ${bblue}[$v6]:$config_port${plain}  ${green}进入x-ui登录界面\n当前x-ui登录用户名：${plain}${bblue}${config_account}${plain}${green} \n当前x-ui登录密码：${plain}${bblue}${config_password}${plain}"
 	echo ""
 	echo "生成 $config_type 配置完成"
- 	echo "v4:$v4"
+ 	echo "int:$int"
+	echo "v4:$v4"
   	echo "v6:$v6"
 	echo "起始端口:$START_PORT"
 	echo "结束端口:$(($START_PORT + $i - 1))"
