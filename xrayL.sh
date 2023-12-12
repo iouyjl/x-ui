@@ -85,9 +85,12 @@ config_xray() {
 	echo -e "$config_content" >/etc/xrayL/config.toml
 	systemctl restart xrayL.service
 	systemctl --no-pager status xrayL.service
+	v4=$(curl -s4m6 ip.sb -k)
+	v6=$(curl -s6m6 ip.sb -k)
+ 
 	echo ""
 	echo "生成 $config_type 配置完成"
-	echo "ip-v4:$(curl -s4m6 ip.sb -k)"
+	echo "ip-v4:${bblue}$(curl -s4m6 ip.sb -k)${plain}"
   	echo "ip-v6:$(curl -s6m6 ip.sb -k)"
 	echo "起始端口:$START_PORT"
 	echo "结束端口:$(($START_PORT + $i - 1))"
