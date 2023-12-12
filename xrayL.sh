@@ -91,21 +91,20 @@ config_xray() {
 	systemctl --no-pager status xrayL.service
 	v4=$(curl -s4m6 ip.sb -k)
 	v6=$(curl -s6m6 ip.sb -k)
- 	int="${green}请在浏览器地址栏复制${plain}  ${bblue}[$v4]${plain}  ${green}"
+ 	int="${green}生成 $config_type 配置完成:${plain}  ${green}"
  
 	echo ""
-	echo "生成 $config_type 配置完成"
 	echo -e "$int"
-	echo "ip-v4:${bblue}$v4"
-  	echo "ip-v6:$(curl -s6m6 ip.sb -k)"
-	echo "起始端口:$START_PORT"
-	echo "结束端口:$(($START_PORT + $i - 1))"
+	echo "HOST-v4:	$v4"
+  	echo "HOST-v6:	$v6"
+	echo "起始端口:	$START_PORT"
+	echo "结束端口:	$(($START_PORT + $i - 1))"
 	if [ "$config_type" == "socks" ]; then
-		echo "socks账号:$SOCKS_USERNAME"
-		echo "socks密码:$SOCKS_PASSWORD"
+		echo "socks账号: $SOCKS_USERNAME"
+		echo "socks密码: $SOCKS_PASSWORD"
 	elif [ "$config_type" == "vmess" ]; then
-		echo "UUID:$UUID"
-		echo "ws路径:$WS_PATH"
+		echo "UUID: $UUID"
+		echo "ws路径: $WS_PATH"
 	fi
 	echo ""
 }
