@@ -2,7 +2,7 @@ DEFAULT_START_PORT=20000                         #默认起始端口
 DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
 DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
 DEFAULT_WS_PATH="/ws"                            #默认ws路径
-DEFAULT_UUID=$(cat /proc/sys/kernel/random/uuid) #默认随机UUID
+DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
 IP_ADDRESSES=($(hostname -I))
 
@@ -40,7 +40,6 @@ config_xray() {
 		exit 1
 	fi
 
-	read -p "起始端口 (默认 $DEFAULT_START_PORT): " START_PORT
 	START_PORT=${START_PORT:-$DEFAULT_START_PORT}
 	if [ "$config_type" == "socks" ]; then
 		read -p "SOCKS 账号 (默认 $DEFAULT_SOCKS_USERNAME): " SOCKS_USERNAME
@@ -49,9 +48,7 @@ config_xray() {
 		read -p "SOCKS 密码 (默认 $DEFAULT_SOCKS_PASSWORD): " SOCKS_PASSWORD
 		SOCKS_PASSWORD=${SOCKS_PASSWORD:-$DEFAULT_SOCKS_PASSWORD}
 	elif [ "$config_type" == "vmess" ]; then
-		read -p "UUID (默认随机): " UUID
 		UUID=${UUID:-$DEFAULT_UUID}
-		read -p "WebSocket 路径 (默认 $DEFAULT_WS_PATH): " WS_PATH
 		WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
 	fi
 
