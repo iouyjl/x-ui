@@ -85,6 +85,8 @@ config_xray() {
 	echo -e "$config_content" >/etc/xrayL/config.toml
 	systemctl restart xrayL.service
 	systemctl --no-pager status xrayL.service
+ 	v4=$(curl -s4m6 ip.sb -k)
+	v6=$(curl -s6m6 ip.sb -k)
 	echo ""
 	echo "生成 $config_type 配置完成"
  	echo "v4:$v4"
