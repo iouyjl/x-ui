@@ -25,7 +25,8 @@ After=network.target
 [Service]
 ExecStart=/usr/local/bin/xrayL -c /etc/xrayL/config.toml
 Restart=on-failure
-User=nobody
+#User=nobody
+User=root
 RestartSec=3
 
 [Install]
