@@ -10,11 +10,12 @@ DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
 IP_ADDRESSES=($(hostname -I))
 
-
-install_xray() {
-	echo "安装 Xray..."
-
-    apt update && apt install wget curl tar -y
+install_base() {
+    if [[ x"${release}" == x"centos" ]]; then
+        yum install epel-release -y && yum install wget curl tar -y
+    else
+        apt update && apt install wget curl tar -y
+    fi
 
 	echo -e "${green}关闭防火墙，开放所有端口规则……${plain}"
 	sleep 1
@@ -35,7 +36,12 @@ install_xray() {
 	service apache2 stop >/dev/null 2>&1
 	systemctl disable apache2 >/dev/null 2>&1
 	fi
-	
+
+}
+
+install_xray() {
+	echo "安装 Xray..."
+	apt-get install unzip -y || yum install unzip -y
 	wget https://github.com/XTLS/Xray-core/releases/download/v1.8.6/Xray-linux-64.zip
 	unzip Xray-linux-64.zip
 	mv xray /usr/local/bin/xrayL
@@ -147,4 +153,5 @@ main() {
 		config_xray "socks"
 	fi
 }
+install_base
 main "$@"
