@@ -3,13 +3,13 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 DEFAULT_START_PORT=20000                         #默认起始端口
-DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
-DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
+DEFAULT_SOCKS_USERNAME="123"                   #默认socks账号
+DEFAULT_SOCKS_PASSWORD="123"               #默认socks密码
 DEFAULT_WS_PATH="/ws"                            #默认ws路径
 DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
 IP_ADDRESSES=($(hostname -I))
-
+cur_dir=$(pwd)
 install_xray() {
 	echo "安装 Xray..."
 	apt-get install unzip -y || yum install unzip -y
