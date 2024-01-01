@@ -7,7 +7,7 @@ DEFAULT_WS_PATH="/ws"                            #默认ws路径
 DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 UUID=${UUID:-$DEFAULT_UUID}
 WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
-
+IP_ADDRESSES=($(hostname -I))
 apt update && apt install -y supervisor wget unzip iproute2
 wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
 unzip Xray-linux-64.zip
