@@ -74,7 +74,7 @@ mkdir -p /etc/xrayLL
         config_content+="- port: 40000\n"
         config_content+="  protocol: shadowsocks\n"
         config_content+="  settings:\n"
-        config_content+="    password: "123"\n"
+        config_content+="    password: \"123\"\n"
         config_content+="    method: chacha20-ietf-poly1305\n"
         config_content+="    ivcheck: true\n"
         config_content+="  streamSettings:\n"
@@ -91,7 +91,7 @@ mkdir -p /etc/xrayLL
         config_content+="  protocol: trojan\n"
         config_content+="  settings:\n"
         config_content+="    clients:\n"
-        config_content+="    - password: "123"\n"
+        config_content+="    - password: \"123\"\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
@@ -107,8 +107,8 @@ mkdir -p /etc/xrayLL
         config_content+="  settings:\n"
         config_content+="    auth: password\n"
         config_content+="    accounts:\n"
-        config_content+="    - user: "123"\n"
-        config_content+="      pass: "123"\n"
+        config_content+="    - user: \"123\"\n"
+        config_content+="      pass: \"123\"\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
@@ -131,74 +131,62 @@ UA_Browser="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 v4=$(curl -s4m6 ip.sb -k)
 v4l=`curl -sm6 --user-agent "${UA_Browser}" http://ip-api.com/json/$v4?lang=zh-CN -k | cut -f2 -d"," | cut -f4 -d '"'`
 
-echo ""
 Argo_xray_vmess="vmess://$(echo -n "\
 {\
 \"v\": \"2\",\
 \"ps\": \"${v4}\",\
 \"add\": \"${v4}\",\
 \"port\": \"20000\",\
-\"id\": \"$UUID\",\
-\"aid\": \"0\",\
+\"id\": \"059ab893-7a38-4a01-a4fa-8111bb7e50cb\",\
 \"net\": \"ws\",\
-\"type\": \"none\",\
+\"security\": \"none\",\
 \"host\": \"\",\
-\"path\": \"/$WS_PATH\",\
-\"tls\": \"tls\",\
-\"sni\": \"${ARGO}\"\
+\"path\": \"/ws\",\
+
 }"\
     | base64 -w 0)" 
-Argo_xray_vless="vless://${UUID}@${v4}:443?encryption=none&security=tls&sni=$v4&type=ws&host=${v4}&path=/$WS_PATH#Argo_xray_vless"
-Argo_xray_trojan="trojan://${UUID}@${v4}:443?security=tls&type=ws&host=${v4}&path=/$WS_PATH&sni=$v4#Argo_xray_trojan"
+Argo_xray_vless="vless://059ab893-7a38-4a01-a4fa-8111bb7e50cb@${v4}:10000?host=&path=%2Fws&type=ws&encryption=none#${v4}-vless"
 
 cat > log << EOF
 ================================================================
 当前网络的IP：$v4
 IP归属地区：$v4l
 ================================================================
-1：Vmess+ws+tls配置明文如下，相关参数可复制到客户端
-uuid：$UUID
-传输协议：ws
-host/sni：$v4
-path路径：/$WS_PATH
-
-分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
+1：Vmess+ws配置明文如下，相关参数可复制到客户端
 ${Argo_xray_vmess}
 
 ----------------------------------------------------------------
-2：Vless+ws+tls配置明文如下，相关参数可复制到客户端
-uuid：$UUID
-传输协议：ws
-host/sni：$v4
-path路径：/$WS_PATH
-
-分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
+2：Vless+ws配置明文如下，相关参数可复制到客户端
 ${Argo_xray_vless}
 
 ----------------------------------------------------------------
-3：Trojan+ws+tls配置明文如下，相关参数可复制到客户端
-密码：$UUID
+3：Trojan+ws配置明文如下，相关参数可复制到客户端
+类型：xray
+协议：Trojan
+host：$v4
+端口：30000
+密码：123
 传输协议：ws
-host/sni：$v4
-path路径：/$WS_PATH
-
-分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
-${Argo_xray_trojan}
+path路径：/ws
 
 ----------------------------------------------------------------
-4：Shadowsocks+ws+tls配置明文如下，相关参数可复制到客户端
-密码：$UUID
+4：Shadowsocks+ws配置明文如下，相关参数可复制到客户端
+类型：xray
+协议：Shadowsocks
+host：$v4
+端口：40000
+密码：123
 加密方式：chacha20-ietf-poly1305
 传输协议：ws
-host/sni：$v4
-path路径：/$WS_PATH
+path路径：/ws
 
 ----------------------------------------------------------------
-5：Socks+ws+tls配置明文如下，相关参数可复制到客户端
-用户名：$UUID
-密码：$UUID
-传输协议：ws
-host/sni：$v4
-path路径：/$WS_PATH
+5：Socks+ws配置明文如下，相关参数可复制到客户端
+类型：xray
+协议：Socks
+host：$v4
+端口：50000
+用户名：123
+密码：123
 EOF
 cat log
