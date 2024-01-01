@@ -9,7 +9,7 @@ uuid="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 ARGO=($(hostname -I))
 
 apt update && apt install -y supervisor wget unzip iproute2
-wget -O m.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+wget -O m.zip https://github.com/XTLS/Xray-core/releases/download/v1.8.6/Xray-linux-64.zip
 unzip m.zip
 chmod a+x xray
 sed -i "s/uuid/$uuid/g" ./config.yaml
