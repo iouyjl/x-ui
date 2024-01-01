@@ -5,7 +5,8 @@ DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
 DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
 DEFAULT_WS_PATH="/ws"                            #默认ws路径
 DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
-
+UUID=${UUID:-$DEFAULT_UUID}
+WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
 
 apt update && apt install -y supervisor wget unzip iproute2
 wget -O m.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
@@ -35,9 +36,9 @@ EOF
 # argo与加密方案出自fscarmen
 mkdir -p /etc/xrayLL
 
-config_content+=inbounds:\n
-config_content+=- port: 10000\n
-config_content+=  protocol: vless\n
+config_content+="inbounds:\n"
+config_content+="- port: 10000\n"
+config_content+="  protocol: vless\n"
 config_content+=  settings:\n
 config_content+=    decryption: none\n
 config_content+=    clients:\n
@@ -126,8 +127,7 @@ systemctl --no-pager status xrayLL.service
 UA_Browser="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36"
 v4=$(curl -s4m6 ip.sb -k)
 v4l=`curl -sm6 --user-agent "${UA_Browser}" http://ip-api.com/json/$v4?lang=zh-CN -k | cut -f2 -d"," | cut -f4 -d '"'`
-UUID=${UUID:-$DEFAULT_UUID}
-WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
+
 
 Argo_xray_vmess="vmess://$(echo -n "\
 {\
