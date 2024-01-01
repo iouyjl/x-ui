@@ -5,8 +5,11 @@ DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
 DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
 DEFAULT_WS_PATH="/ws"                            #默认ws路径
 DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
+
 UUID=${UUID:-$DEFAULT_UUID}
 WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
+SOCKS_PASSWORD=${SOCKS_PASSWORD:-$DEFAULT_SOCKS_PASSWORD}
+
 IP_ADDRESSES=($(hostname -I))
 apt update && apt install -y supervisor wget unzip iproute2
 wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
@@ -35,18 +38,18 @@ EOF
 
 # argo与加密方案出自fscarmen
 mkdir -p /etc/xrayLL
-	for ((i = 0; i < ${#IP_ADDRESSES[@]}; i++)); do
+
         config_content+="inbounds:\n"
         config_content+="- port: 10000\n"
         config_content+="  protocol: vless\n"
         config_content+="  settings:\n"
         config_content+="    decryption: none\n"
         config_content+="    clients:\n"
-        config_content+="    - id: ${UUID:-$DEFAULT_UUID}\n"
+        config_content+="    - id: 059ab893-7a38-4a01-a4fa-8111bb7e50cb\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
-        config_content+="      path: ${WS_PATH:-$DEFAULT_WS_PATH}\n"
+        config_content+="      path: /ws\n"
         config_content+="  sniffing:\n"
         config_content+="    enabled: true\n"
         config_content+="    destOverride:\n"
@@ -57,11 +60,11 @@ mkdir -p /etc/xrayLL
         config_content+="  protocol: vmess\n"
         config_content+="  settings:\n"
         config_content+="    clients:\n"
-        config_content+="    - id: ${UUID:-$DEFAULT_UUID}\n"
+        config_content+="    - id: 059ab893-7a38-4a01-a4fa-8111bb7e50cb\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
-        config_content+="      path: ${WS_PATH:-$DEFAULT_WS_PATH}\n"
+        config_content+="      path: /ws\n"
         config_content+="  sniffing:\n"
         config_content+="    enabled: true\n"
         config_content+="    destOverride:\n"
@@ -71,13 +74,13 @@ mkdir -p /etc/xrayLL
         config_content+="- port: 40000\n"
         config_content+="  protocol: shadowsocks\n"
         config_content+="  settings:\n"
-        config_content+="    password: "$SOCKS_PASSWORD"\n"
+        config_content+="    password: "123"\n"
         config_content+="    method: chacha20-ietf-poly1305\n"
         config_content+="    ivcheck: true\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
-        config_content+="      path: ${WS_PATH:-$DEFAULT_WS_PATH}\n"
+        config_content+="      path: /ws\n"
         config_content+="  sniffing:\n"
         config_content+="    enabled: true\n"
         config_content+="    destOverride:\n"
@@ -88,11 +91,11 @@ mkdir -p /etc/xrayLL
         config_content+="  protocol: trojan\n"
         config_content+="  settings:\n"
         config_content+="    clients:\n"
-        config_content+="    - password: "$SOCKS_PASSWORD"\n"
+        config_content+="    - password: "123"\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
-        config_content+="      path: ${WS_PATH:-$DEFAULT_WS_PATH}\n"
+        config_content+="      path: /ws\n"
         config_content+="  sniffing:\n"
         config_content+="    enabled: true\n"
         config_content+="    destOverride:\n"
@@ -104,12 +107,12 @@ mkdir -p /etc/xrayLL
         config_content+="  settings:\n"
         config_content+="    auth: password\n"
         config_content+="    accounts:\n"
-        config_content+="    - user: "$SOCKS_USERNAME"\n"
-        config_content+="      pass: "$SOCKS_PASSWORD"\n"
+        config_content+="    - user: "123"\n"
+        config_content+="      pass: "123"\n"
         config_content+="  streamSettings:\n"
         config_content+="    network: ws\n"
         config_content+="    wsSettings:\n"
-        config_content+="      path: ${WS_PATH:-$DEFAULT_WS_PATH}\n"
+        config_content+="      path: /ws\n"
         config_content+="  sniffing:\n"
         config_content+="    enabled: true\n"
         config_content+="    destOverride:\n"
@@ -119,7 +122,7 @@ mkdir -p /etc/xrayLL
         config_content+="outbounds:\n"
         config_content+="- protocol: freedom\n"
         config_content+="  tag: direct\n\n\n"
-	done
+
 
 echo -e "$config_content" >/etc/xrayLL/config.yaml
 systemctl restart xrayLL.service
@@ -197,5 +200,5 @@ path路径：/$WS_PATH
 传输协议：ws
 host/sni：$v4
 path路径：/$WS_PATH
-echo ""
+EOF
 
