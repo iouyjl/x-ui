@@ -201,4 +201,4 @@ path路径：/$WS_PATH
 host/sni：$v4
 path路径：/$WS_PATH
 EOF
-
+cat log
