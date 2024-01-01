@@ -3,8 +3,8 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 DEFAULT_START_PORT=20000                         #默认起始端口
-DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
-DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
+DEFAULT_SOCKS_USERNAME="123"                   #默认socks账号
+DEFAULT_SOCKS_PASSWORD="123"               #默认socks密码
 DEFAULT_WS_PATH="/ws"                            #默认ws路径
 DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
@@ -16,27 +16,6 @@ install_base() {
     else
         apt update && apt install wget curl tar -y
     fi
-
-	echo -e "${green}关闭防火墙，开放所有端口规则……${plain}"
-	sleep 1
-	systemctl stop firewalld.service >/dev/null 2>&1
-	systemctl disable firewalld.service >/dev/null 2>&1
-	setenforce 0 >/dev/null 2>&1
-	ufw disable >/dev/null 2>&1
-	iptables -P INPUT ACCEPT >/dev/null 2>&1
-	iptables -P FORWARD ACCEPT >/dev/null 2>&1
-	iptables -P OUTPUT ACCEPT >/dev/null 2>&1
-	iptables -t mangle -F >/dev/null 2>&1
-	iptables -F >/dev/null 2>&1
-	iptables -X >/dev/null 2>&1
-	netfilter-persistent save >/dev/null 2>&1
-	if [[ -n $(apachectl -v 2>/dev/null) ]]; then
-	systemctl stop httpd.service >/dev/null 2>&1
-	systemctl disable httpd.service >/dev/null 2>&1
-	service apache2 stop >/dev/null 2>&1
-	systemctl disable apache2 >/dev/null 2>&1
-	fi
-
 }
 
 install_xray() {
@@ -52,7 +31,7 @@ Description=XrayL Service
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/xrayL -c /etc/xrayL/config.toml
+ExecStart=/usr/local/bin/xrayL -c /etc/xrayL/config.yaml
 Restart=on-failure
 User=nobody
 RestartSec=3
@@ -115,7 +94,7 @@ config_xray() {
 		config_content+="inboundTag = \"tag_$((i + 1))\"\n"
 		config_content+="outboundTag = \"tag_$((i + 1))\"\n\n\n"
 	done
-	echo -e "$config_content" >/etc/xrayL/config.toml
+	echo -e "$config_content" >/etc/xrayL/config.yaml
 	systemctl restart xrayL.service
 	systemctl --no-pager status xrayL.service
 	v4=$(curl -s4m6 ip.sb -k)
