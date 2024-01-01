@@ -1,15 +1,6 @@
 #!/bin/sh
-
-DEFAULT_START_PORT=20000                         #默认起始端口
-DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
-DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
-PATH="/ws"                            #默认ws路径
-uuid="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
-
-IP_ADDRESSES=($(hostname -I))
-
 apt update && apt install -y supervisor wget unzip iproute2
-wget -O m.zip https://github.com/XTLS/Xray-core/releases/download/v1.8.6/Xray-linux-64.zip
+wget -O m.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
 unzip m.zip
 chmod a+x xray
 sed -i "s/uuid/$uuid/g" ./config.yaml
@@ -22,7 +13,11 @@ base64 -d config > config.yaml; ./$xpid -config=config.yaml
 
 
 # argo与加密方案出自fscarmen
-
+wget -N https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+chmod +x cloudflared-linux-amd64
+./cloudflared-linux-amd64 tunnel --url http://localhost:8080 --no-autoupdate > argo.log 2>&1 &
+sleep 5
+ARGO=$(cat argo.log | grep -oE "https://.*[a-z]+cloudflare.com" | sed "s#https://##")
 xver=`./$xpid version | sed -n 1p | awk '{print $2}'`
 UA_Browser="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36"
 v4=$(curl -s4m6 ip.sb -k)
@@ -32,20 +27,20 @@ Argo_xray_vmess="vmess://$(echo -n "\
 {\
 \"v\": \"2\",\
 \"ps\": \"Argo_xray_vmess\",\
-\"add\": \"${IP_ADDRESSES}\",\
+\"add\": \"${ARGO}\",\
 \"port\": \"443\",\
 \"id\": \"$uuid\",\
 \"aid\": \"0\",\
 \"net\": \"ws\",\
 \"type\": \"none\",\
-\"host\": \"${IP_ADDRESSES}\",\
-\"path\": \"/$PATH\",\
+\"host\": \"${ARGO}\",\
+\"path\": \"/$uuid-vm\",\
 \"tls\": \"tls\",\
-\"sni\": \"${IP_ADDRESSES}\"\
+\"sni\": \"${ARGO}\"\
 }"\
     | base64 -w 0)" 
-Argo_xray_vless="vless://${uuid}@${IP_ADDRESSES}:443?encryption=none&security=tls&sni=$IP_ADDRESSES&type=ws&host=${IP_ADDRESSES}&path=/$PATH#Argo_xray_vless"
-Argo_xray_trojan="trojan://${uuid}@${IP_ADDRESSES}:443?security=tls&type=ws&host=${IP_ADDRESSES}&path=/$PATH&sni=$IP_ADDRESSES#Argo_xray_trojan"
+Argo_xray_vless="vless://${uuid}@${ARGO}:443?encryption=none&security=tls&sni=$ARGO&type=ws&host=${ARGO}&path=/$uuid-vl#Argo_xray_vless"
+Argo_xray_trojan="trojan://${uuid}@${ARGO}:443?security=tls&type=ws&host=${ARGO}&path=/$uuid-tr&sni=$ARGO#Argo_xray_trojan"
 
 cat > log << EOF
 ****************************************************************
@@ -62,12 +57,12 @@ Cloudflared Argo 隧道模式Xray五协议配置如下：
 ================================================================
 ----------------------------------------------------------------
 1：Vmess+ws+tls配置明文如下，相关参数可复制到客户端
-Argo服务器临时地址（可更改为CDN自选IP）：$IP_ADDRESSES
+Argo服务器临时地址（可更改为CDN自选IP）：$ARGO
 https端口：可选443、2053、2083、2087、2096、8443，tls必须开启
 http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关闭
 uuid：$uuid
 传输协议：ws
-host/sni：$IP_ADDRESSES
+host/sni：$ARGO
 path路径：/$uuid-vm
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
@@ -75,12 +70,12 @@ ${Argo_xray_vmess}
 
 ----------------------------------------------------------------
 2：Vless+ws+tls配置明文如下，相关参数可复制到客户端
-Argo服务器临时地址（可更改为CDN自选IP）：$IP_ADDRESSES
+Argo服务器临时地址（可更改为CDN自选IP）：$ARGO
 https端口：可选443、2053、2083、2087、2096、8443，tls必须开启
 http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关闭
 uuid：$uuid
 传输协议：ws
-host/sni：$IP_ADDRESSES
+host/sni：$ARGO
 path路径：/$uuid-vl
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
@@ -88,12 +83,12 @@ ${Argo_xray_vless}
 
 ----------------------------------------------------------------
 3：Trojan+ws+tls配置明文如下，相关参数可复制到客户端
-Argo服务器临时地址（可更改为CDN自选IP）：$IP_ADDRESSES
+Argo服务器临时地址（可更改为CDN自选IP）：$ARGO
 https端口：可选443、2053、2083、2087、2096、8443，tls必须开启
 http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关闭
 密码：$uuid
 传输协议：ws
-host/sni：$IP_ADDRESSES
+host/sni：$ARGO
 path路径：/$uuid-tr
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
@@ -101,24 +96,24 @@ ${Argo_xray_trojan}
 
 ----------------------------------------------------------------
 4：Shadowsocks+ws+tls配置明文如下，相关参数可复制到客户端
-Argo服务器临时地址（可更改为CDN自选IP）：$IP_ADDRESSES
+Argo服务器临时地址（可更改为CDN自选IP）：$ARGO
 https端口：可选443、2053、2083、2087、2096、8443，tls必须开启
 http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关闭
 密码：$uuid
 加密方式：chacha20-ietf-poly1305
 传输协议：ws
-host/sni：$IP_ADDRESSES
+host/sni：$ARGO
 path路径：/$uuid-ss
 
 ----------------------------------------------------------------
 5：Socks+ws+tls配置明文如下，相关参数可复制到客户端
-Argo服务器临时地址（可更改为CDN自选IP）：$IP_ADDRESSES
+Argo服务器临时地址（可更改为CDN自选IP）：$ARGO
 https端口：可选443、2053、2083、2087、2096、8443，tls必须开启
 http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关闭
 用户名：$uuid
 密码：$uuid
 传输协议：ws
-host/sni：$IP_ADDRESSES
+host/sni：$ARGO
 path路径：/$uuid-so
 
 ----------------------------------------------------------------
