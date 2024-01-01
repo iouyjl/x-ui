@@ -3,10 +3,10 @@
 DEFAULT_START_PORT=20000                         #默认起始端口
 DEFAULT_SOCKS_USERNAME="userb"                   #默认socks账号
 DEFAULT_SOCKS_PASSWORD="passwordb"               #默认socks密码
-PATH="/ws"                            #默认ws路径
-uuid="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
+DEFAULT_WS_PATH="/ws"                            #默认ws路径
+DEFAULT_UUID="059ab893-7a38-4a01-a4fa-8111bb7e50cb" #默认随机UUID
 
-ARGO=($(hostname -I))
+ARGO=$(hostname -I)
 
 apt update && apt install -y supervisor wget unzip iproute2
 wget -O m.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
@@ -27,6 +27,8 @@ xver=`./$xpid version | sed -n 1p | awk '{print $2}'`
 UA_Browser="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36"
 v4=$(curl -s4m6 ip.sb -k)
 v4l=`curl -sm6 --user-agent "${UA_Browser}" http://ip-api.com/json/$v4?lang=zh-CN -k | cut -f2 -d"," | cut -f4 -d '"'`
+UUID=${UUID:-$DEFAULT_UUID}
+WS_PATH=${WS_PATH:-$DEFAULT_WS_PATH}
 
 Argo_xray_vmess="vmess://$(echo -n "\
 {\
@@ -39,13 +41,13 @@ Argo_xray_vmess="vmess://$(echo -n "\
 \"net\": \"ws\",\
 \"type\": \"none\",\
 \"host\": \"${ARGO}\",\
-\"path\": \"/$PATH\",\
+\"path\": \"/$WS_PATH\",\
 \"tls\": \"tls\",\
 \"sni\": \"${ARGO}\"\
 }"\
     | base64 -w 0)" 
-Argo_xray_vless="vless://${uuid}@${ARGO}:443?encryption=none&security=tls&sni=$ARGO&type=ws&host=${ARGO}&path=/$PATH#Argo_xray_vless"
-Argo_xray_trojan="trojan://${uuid}@${ARGO}:443?security=tls&type=ws&host=${ARGO}&path=/$PATH&sni=$ARGO#Argo_xray_trojan"
+Argo_xray_vless="vless://${uuid}@${ARGO}:443?encryption=none&security=tls&sni=$ARGO&type=ws&host=${ARGO}&path=/$WS_PATH#Argo_xray_vless"
+Argo_xray_trojan="trojan://${uuid}@${ARGO}:443?security=tls&type=ws&host=${ARGO}&path=/$WS_PATH&sni=$ARGO#Argo_xray_trojan"
 
 cat > log << EOF
 ****************************************************************
@@ -68,7 +70,7 @@ http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关�
 uuid：$uuid
 传输协议：ws
 host/sni：$ARGO
-path路径：/$uuid-vm
+path路径：/$WS_PATH
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
 ${Argo_xray_vmess}
@@ -81,7 +83,7 @@ http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关�
 uuid：$uuid
 传输协议：ws
 host/sni：$ARGO
-path路径：/$uuid-vl
+path路径：/$WS_PATH
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
 ${Argo_xray_vless}
@@ -94,7 +96,7 @@ http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关�
 密码：$uuid
 传输协议：ws
 host/sni：$ARGO
-path路径：/$uuid-tr
+path路径：/$WS_PATH
 
 分享链接如下（默认443端口、tls开启，服务器地址可更改为自选IP）
 ${Argo_xray_trojan}
@@ -108,7 +110,7 @@ http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关�
 加密方式：chacha20-ietf-poly1305
 传输协议：ws
 host/sni：$ARGO
-path路径：/$uuid-ss
+path路径：/$WS_PATH
 
 ----------------------------------------------------------------
 5：Socks+ws+tls配置明文如下，相关参数可复制到客户端
@@ -119,6 +121,6 @@ http端口：可选80、8080、8880、2052、2082、2086、2095，tls必须关�
 密码：$uuid
 传输协议：ws
 host/sni：$ARGO
-path路径：/$uuid-so
+path路径：/$WS_PATH
 
 
