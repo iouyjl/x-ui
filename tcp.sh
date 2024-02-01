@@ -121,14 +121,12 @@ Argo_xray_vmess="vmess://$(echo -n "\
 \"add\": \"${v4}\",\
 \"port\": \"20000\",\
 \"id\": \"059ab893-7a38-4a01-a4fa-8111bb7e50cb\",\
-\"net\": \"ws\",\
-\"security\": \"none\",\
-\"host\": \"\",\
-\"path\": \"/ws\",\
+\"net\": \"tcp\",\
 
 }"\
     | base64 -w 0)" 
-Argo_xray_vless="vless://059ab893-7a38-4a01-a4fa-8111bb7e50cb@${v4}:10000?host=&path=%2Fws&type=ws&encryption=none#${v4}-vless"
+Argo_xray_vless="vless://059ab893-7a38-4a01-a4fa-8111bb7e50cb@${v4}:10000?headerType=none&type=tcp&encryption=none#${v4}-vless"
+
 
 cat > log << EOF
 ================================================================
@@ -149,8 +147,6 @@ ${Argo_xray_vless}
 host：$v4
 端口：30000
 密码：123
-传输协议：ws
-path路径：/ws
 
 ----------------------------------------------------------------
 4：Shadowsocks+ws配置明文如下，相关参数可复制到客户端
@@ -160,8 +156,6 @@ host：$v4
 端口：40000
 密码：123
 加密方式：chacha20-ietf-poly1305
-传输协议：ws
-path路径：/ws
 
 ----------------------------------------------------------------
 5：Socks+ws配置明文如下，相关参数可复制到客户端
