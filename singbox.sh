@@ -65,7 +65,7 @@ TROJAN_PASSWORD=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-16)
 SOCKS_USER=$(openssl rand -base64 6 | tr -d '/+')
 SOCKS_PASSWORD=$(openssl rand -base64 12 | tr -d '/+' | cut -c1-16)
 
-# 创建最优性能的sing-box配置
+# 创建优化配置 - 移除Hysteria2或使用简单配置
 cat > /etc/singbox/config.json <<EOF
 {
   "log": {
@@ -141,12 +141,7 @@ cat > /etc/singbox/config.json <<EOF
         }
       ],
       "tls": {
-        "enabled": true,
-        "alpn": [
-          "h3"
-        ],
-        "certificate_path": "",
-        "key_path": ""
+        "enabled": false
       }
     },
     {
@@ -205,10 +200,115 @@ EOF
 chown -R singbox:nogroup /etc/singbox
 chmod 644 /etc/singbox/config.json
 
+# 先测试配置文件
+echo "测试配置文件..."
+if /usr/local/bin/singbox check -c /etc/singbox/config.json; then
+    echo "✓ 配置文件检查通过"
+else
+    echo "✗ 配置文件检查失败，使用简化配置..."
+    # 使用更简单的配置
+    cat > /etc/singbox/config.json <<EOF
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "shadowsocks",
+      "tag": "ss-inbound",
+      "listen": "0.0.0.0",
+      "listen_port": 10000,
+      "method": "2022-blake3-aes-128-gcm",
+      "password": "${SHADOWSOCKS_PASSWORD}"
+    },
+    {
+      "type": "vmess",
+      "tag": "vmess-inbound",
+      "listen": "0.0.0.0",
+      "listen_port": 20000,
+      "users": [
+        {
+          "uuid": "${UUID}",
+          "alterId": 0
+        }
+      ]
+    },
+    {
+      "type": "trojan",
+      "tag": "trojan-inbound",
+      "listen": "0.0.0.0",
+      "listen_port": 30000,
+      "users": [
+        {
+          "password": "${TROJAN_PASSWORD}"
+        }
+      ]
+    },
+    {
+      "type": "socks",
+      "tag": "socks-inbound",
+      "listen": "0.0.0.0",
+      "listen_port": 50000,
+      "users": [
+        {
+          "username": "${SOCKS_USER}",
+          "password": "${SOCKS_PASSWORD}"
+        }
+      ]
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ]
+}
+EOF
+fi
+
 # 启动服务
 systemctl daemon-reload
 systemctl enable singbox.service
-systemctl start singbox.service
+systemctl restart singbox.service
+
+sleep 2
+
+# 检查服务状态
+if systemctl is-active --quiet singbox.service; then
+    echo "✓ Sing-box 服务启动成功"
+else
+    echo "✗ Sing-box 服务启动失败，查看日志..."
+    journalctl -u singbox.service -n 20 --no-pager
+    
+    # 尝试使用更简单的配置
+    echo "尝试使用最基本配置..."
+    cat > /etc/singbox/config.json <<EOF
+{
+  "log": {
+    "level": "info"
+  },
+  "inbounds": [
+    {
+      "type": "shadowsocks",
+      "listen": "0.0.0.0",
+      "listen_port": 10000,
+      "method": "chacha20-ietf-poly1305",
+      "password": "${SHADOWSOCKS_PASSWORD}"
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct"
+    }
+  ]
+}
+EOF
+    
+    systemctl restart singbox.service
+    sleep 1
+fi
 
 # 性能优化
 # 调整内核参数
@@ -231,12 +331,12 @@ net.ipv4.tcp_congestion_control = bbr
 net.ipv4.tcp_notsent_lowat = 16384
 EOF
 
-sysctl -p
+sysctl -p 2>/dev/null
 
 # 启用BBR
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
 echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-sysctl -p
+sysctl -p 2>/dev/null
 
 # 优化文件限制
 cat > /etc/security/limits.d/singbox.conf <<EOF
@@ -247,27 +347,29 @@ singbox hard nofile 51200
 EOF
 
 # 获取IP信息
-v4=$(curl -s4m6 ip.sb -k)
-UA_Browser="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36"
-v4l=$(curl -sm6 --user-agent "${UA_Browser}" "http://ip-api.com/json/$v4?lang=zh-CN" -k | grep -o '"regionName":"[^"]*"' | cut -d'"' -f4)
+v4=$(curl -s4m6 ip.sb -k 2>/dev/null || curl -s4m6 icanhazip.com 2>/dev/null || echo "127.0.0.1")
+if [ "$v4" = "127.0.0.1" ]; then
+    # 尝试从接口获取IP
+    v4=$(ip addr show | grep -oP 'inet \K[\d.]+' | grep -v '127.0.0.1' | head -1)
+fi
 
-# 生成各种格式的分享链接
+# 生成分享链接
 # 1. Shadowsocks链接
-SS_LINK="ss://$(echo -n "2022-blake3-aes-128-gcm:${SHADOWSOCKS_PASSWORD}@${v4}:10000" | base64 -w 0)#SingBox_SS"
+SS_LINK="ss://$(echo -n "chacha20-ietf-poly1305:${SHADOWSOCKS_PASSWORD}@${v4}:10000" | base64 -w 0)#SingBox_SS"
 
 # 2. VMESS链接
 VMESS_CONFIG=$(cat <<EOF | base64 -w 0
 {
   "v": "2",
-  "ps": "SingBox_VMESS_gRPC",
+  "ps": "SingBox_VMESS",
   "add": "${v4}",
   "port": "20000",
   "id": "${UUID}",
   "aid": "0",
-  "net": "grpc",
+  "net": "tcp",
   "type": "none",
   "host": "",
-  "path": "GunService",
+  "path": "",
   "tls": ""
 }
 EOF
@@ -275,12 +377,9 @@ EOF
 VMESS_LINK="vmess://${VMESS_CONFIG}"
 
 # 3. Trojan链接
-TROJAN_LINK="trojan://${TROJAN_PASSWORD}@${v4}:30000?type=ws&path=%2Fws&sni=${v4}#SingBox_Trojan"
+TROJAN_LINK="trojan://${TROJAN_PASSWORD}@${v4}:30000?sni=${v4}#SingBox_Trojan"
 
-# 4. Hysteria2链接
-HYSTERIA2_LINK="hysteria2://${UUID}@${v4}:40000/?insecure=1&sni=${v4}#SingBox_Hysteria2"
-
-# 5. SOCKS链接（标准格式）
+# 5. SOCKS链接
 SOCKS_LINK="socks://${SOCKS_USER}:${SOCKS_PASSWORD}@${v4}:50000#SingBox_SOCKS5"
 
 # 生成Clash配置
@@ -293,46 +392,32 @@ log-level: info
 external-controller: 127.0.0.1:9090
 
 proxies:
-  # Shadowsocks 2022
-  - name: "SingBox-SS-2022"
+  # Shadowsocks
+  - name: "SingBox-SS"
     type: ss
     server: ${v4}
     port: 10000
-    cipher: 2022-blake3-aes-128-gcm
+    cipher: chacha20-ietf-poly1305
     password: "${SHADOWSOCKS_PASSWORD}"
     udp: true
     
-  # VMESS-gRPC
-  - name: "SingBox-VMESS-gRPC"
+  # VMESS
+  - name: "SingBox-VMESS"
     type: vmess
     server: ${v4}
     port: 20000
     uuid: ${UUID}
     alterId: 0
     cipher: auto
-    network: grpc
-    grpc-opts:
-      grpc-service-name: "GunService"
-      
-  # Trojan-WS
-  - name: "SingBox-Trojan-WS"
+    
+  # Trojan
+  - name: "SingBox-Trojan"
     type: trojan
     server: ${v4}
     port: 30000
     password: "${TROJAN_PASSWORD}"
-    network: ws
-    ws-opts:
-      path: /ws
-      
-  # Hysteria2
-  - name: "SingBox-Hysteria2"
-    type: hysteria2
-    server: ${v4}
-    port: 40000
-    password: "${UUID}"
     sni: ${v4}
-    insecure: true
-    
+      
   # SOCKS5
   - name: "SingBox-SOCKS5"
     type: socks5
@@ -345,19 +430,12 @@ proxy-groups:
   - name: "🚀 节点选择"
     type: select
     proxies:
-      - "SingBox-SS-2022"
-      - "SingBox-VMESS-gRPC"
-      - "SingBox-Trojan-WS"
-      - "SingBox-Hysteria2"
+      - "SingBox-SS"
+      - "SingBox-VMESS"
+      - "SingBox-Trojan"
       - "DIRECT"
       
   - name: "🌍 国外媒体"
-    type: select
-    proxies:
-      - "🚀 节点选择"
-      - "DIRECT"
-      
-  - name: "📲 电报服务"
     type: select
     proxies:
       - "🚀 节点选择"
@@ -369,84 +447,36 @@ rules:
   - IP-CIDR,192.168.0.0/16,DIRECT
   - IP-CIDR,10.0.0.0/8,DIRECT
   - IP-CIDR,172.16.0.0/12,DIRECT
-  - GEOIP,CN,DIRECT
   - MATCH,🚀 节点选择
 EOF
 
-# 生成Quantumult X配置
-cat > /root/singbox_quantumultx.txt <<EOF
-# Quantumult X 配置
-# Shadowsocks 2022
-shadowsocks=ss://$(echo -n "2022-blake3-aes-128-gcm:${SHADOWSOCKS_PASSWORD}" | base64 -w 0)@${v4}:10000, tag=SingBox-SS-2022, over-tls=false, udp-relay=true
-
-# VMESS gRPC
-vmess=vmess://${UUID}@${v4}:20000, tag=SingBox-VMESS-gRPC, over-tls=false, cert=, cipher=auto, obfs=grpc, obfs-host=GunService, udp-relay=true
-
-# Trojan WS
-trojan=${TROJAN_PASSWORD}@${v4}:30000, tag=SingBox-Trojan-WS, over-tls=false, udp-relay=true, obfs=ws, obfs-host=${v4}, obfs-uri=/ws
-
-# Hysteria2
-http3=hysteria2://${UUID}@${v4}:40000/?insecure=1&sni=${v4}, tag=SingBox-Hysteria2, udp-relay=true
-
-# SOCKS5
-socks5=${v4}:50000, username=${SOCKS_USER}, password=${SOCKS_PASSWORD}, tag=SingBox-SOCKS5, udp-relay=true, over-tls=false
-EOF
-
-# 生成Surge配置
-cat > /root/singbox_surge.conf <<EOF
-# Surge 配置
-# Shadowsocks 2022
-SingBox-SS-2022 = ss, ${v4}, 10000, encrypt-method=2022-blake3-aes-128-gcm, password=${SHADOWSOCKS_PASSWORD}, udp-relay=true
-
-# VMESS gRPC
-SingBox-VMESS-gRPC = vmess, ${v4}, 20000, username=${UUID}, ws=true, ws-path=GunService, ws-opts=host:${v4}, ws-headers=, udp-relay=true
-
-# Trojan WS
-SingBox-Trojan-WS = trojan, ${v4}, 30000, password=${TROJAN_PASSWORD}, ws=true, ws-path=/ws, sni=${v4}, udp-relay=true
-
-# SOCKS5
-SingBox-SOCKS5 = socks5, ${v4}, 50000, username=${SOCKS_USER}, password=${SOCKS_PASSWORD}, udp-relay=true
-EOF
-
 # 输出配置信息
+echo ""
 echo "=================================================================================="
-echo "                     Sing-box 多协议代理服务器安装完成"
+echo "                     Sing-box 代理服务器安装完成"
 echo "=================================================================================="
 echo "服务器IP：$v4"
-echo "IP归属：$v4l"
 echo "安装时间：$(date '+%Y-%m-%d %H:%M:%S')"
 echo "=================================================================================="
 echo ""
 echo "📱 直接导入链接："
 echo ""
-echo "1. Shadowsocks 2022 (最高性能):"
+echo "1. Shadowsocks (推荐):"
 echo "   $SS_LINK"
 echo ""
-echo "2. VMESS + gRPC (抗干扰强):"
+echo "2. VMESS:"
 echo "   $VMESS_LINK"
 echo ""
-echo "3. Trojan + WebSocket:"
+echo "3. Trojan:"
 echo "   $TROJAN_LINK"
 echo ""
-echo "4. Hysteria2 (UDP高速):"
-echo "   $HYSTERIA2_LINK"
-echo ""
-echo "5. SOCKS5:"
+echo "4. SOCKS5:"
 echo "   $SOCKS_LINK"
 echo ""
 echo "=================================================================================="
 echo "📁 配置文件路径："
 echo "主配置: /etc/singbox/config.json"
-echo "Clash配置: /root/singbox_clash.yaml"
-echo "Quantumult X: /root/singbox_quantumultx.txt"
-echo "Surge配置: /root/singbox_surge.conf"
-echo "=================================================================================="
-echo ""
-echo "⚡ 性能优化已启用："
-echo "✓ TCP BBR 拥塞控制"
-echo "✓ 内核网络参数优化"
-echo "✓ 文件描述符限制提升"
-echo "✓ TCP Fast Open"
+echo "Clash配置: /root/singbox_clash.yaml (可直接导入软路由)"
 echo "=================================================================================="
 echo ""
 echo "🔧 服务管理命令："
@@ -455,16 +485,22 @@ echo "停止: systemctl stop singbox"
 echo "重启: systemctl restart singbox"
 echo "状态: systemctl status singbox"
 echo "日志: journalctl -u singbox -f"
-echo "=================================================================================="
 echo ""
-echo "💡 使用建议："
-echo "1. 推荐使用 Clash.Meta 客户端（支持所有协议）"
-echo "2. 移动端推荐 v2rayNG 或 Shadowrocket"
-echo "3. 软路由可直接导入 Clash 配置"
-echo "4. Hysteria2 需要支持 QUIC 的客户端"
+echo "📊 测试连接："
+echo "检查端口: nc -zv $v4 10000"
+echo "检查端口: nc -zv $v4 20000"
+echo "检查端口: nc -zv $v4 30000"
+echo "检查端口: nc -zv $v4 50000"
 echo "=================================================================================="
 
 # 显示服务状态
 echo ""
 echo "📊 服务运行状态："
 systemctl --no-pager status singbox.service
+
+# 检查端口监听
+echo ""
+echo "🔍 端口监听状态："
+netstat -tlnp | grep singbox || echo "等待服务启动..."
+sleep 3
+netstat -tlnp | grep singbox || echo "使用: systemctl restart singbox 重启服务"
