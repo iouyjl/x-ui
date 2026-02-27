@@ -3,7 +3,7 @@
 # Sing-Box 四协议一键脚本 (VL Reality + VMess-ws + Hysteria2 + Tuic5)
 # 风格参考 vlhy2(lvhy.sh)，依赖仅 curl/openssl/jq，支持全自动非交互
 # 可放入你自己的 GitHub 仓库，用 CmdScript 调用：
-#   bash <(curl -sSL https://raw.githubusercontent.com/你的用户名/你的仓库/main/sing-box-4proto.sh)
+#   bash <(curl -sSL https://raw.githubusercontent.com/你的用户名/你的仓库/main/sing.sh)
 # =============================================================================
 set -e
 export LANG=en_US.UTF-8
