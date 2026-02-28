@@ -1,248 +1,155 @@
 #!/bin/bash
-# Sing-box 全自动安装脚本 v3.0
-# 自动安装 + 关闭防火墙 + 优化 + 输出链接
+# ==========================================
+# 极简版 Sing-box 全自动部署脚本 (精准优化版)
+# 基于实测通畅的第二版修改：压低延迟 + SK5明文配置
+# ==========================================
 
-set -e
+echo -e "\n[1/5] 正在清理防火墙拦截并注入满血版网络优化(压低延迟)..."
+apt-get update -y >/dev/null 2>&1
+apt-get install -y curl wget tar openssl iptables >/dev/null 2>&1
 
-# 颜色
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+systemctl stop firewalld >/dev/null 2>&1
+systemctl disable firewalld >/dev/null 2>&1
+ufw disable >/dev/null 2>&1
+iptables -P INPUT ACCEPT 2>/dev/null
+iptables -P FORWARD ACCEPT 2>/dev/null
+iptables -P OUTPUT ACCEPT 2>/dev/null
+iptables -F 2>/dev/null
 
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}  Sing-box 全自动脚本 (一键完成所有)  ${NC}"
-echo -e "${GREEN}========================================${NC}"
+# 注入满血版 BBR 和 TCP 缓冲区优化（解决延迟高的核心）
+cat > /etc/sysctl.d/99-singbox-optimize.conf <<EOF
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+net.ipv4.tcp_fastopen=3
+net.ipv4.tcp_keepalive_time=1200
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_notsent_lowat=16384
+EOF
+sysctl --system >/dev/null 2>&1
 
-# 检查root
-[ "$EUID" -ne 0 ] && echo -e "${RED}[!] 请用root运行${NC}" && exit 1
+echo -e "[2/5] 正在下载并安装 sing-box 内核..."
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64) CPU="amd64" ;;
+  aarch64) CPU="arm64" ;;
+  *) echo "不支持的架构: $ARCH" && exit 1 ;;
+esac
 
-# 1. 更新系统
-echo -e "${BLUE}[1/8]${NC} 更新系统..."
-apt update -y > /dev/null 2>&1
-apt install -y curl wget tar > /dev/null 2>&1
+SB_VER=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+if [ -z "$SB_VER" ]; then SB_VER="1.11.4"; fi
 
-# 2. 下载Sing-box
-echo -e "${BLUE}[2/8]${NC} 下载Sing-box..."
-cd /tmp
-# 使用快速下载源
-wget -q --timeout=30 -O singbox.tar.gz "https://dl.sb.workers.dev/https://github.com/SagerNet/sing-box/releases/download/v1.12.21/sing-box-1.12.21-linux-amd64.tar.gz" || {
-    # 备用源
-    wget -q -O singbox.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v1.12.21/sing-box-1.12.21-linux-amd64.tar.gz"
-}
-
-# 解压
-tar -xzf singbox.tar.gz
-mv sing-box-1.12.21-linux-amd64/sing-box /usr/local/bin/
+wget -qO sing-box.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v${SB_VER}/sing-box-${SB_VER}-linux-${CPU}.tar.gz"
+tar -xzf sing-box.tar.gz
+cp sing-box-*/sing-box /usr/local/bin/
 chmod +x /usr/local/bin/sing-box
+rm -rf sing-box.tar.gz sing-box-*
+mkdir -p /etc/sing-box
 
-# 3. 生成随机配置
-echo -e "${BLUE}[3/8]${NC} 生成配置..."
-mkdir -p /etc/singbox
+echo -e "[3/5] 正在生成参数与自签证书..."
+UUID=$(/usr/local/bin/sing-box generate uuid)
+KEYPAIR=$(/usr/local/bin/sing-box generate reality-keypair)
+PRIVATE_KEY=$(echo "$KEYPAIR" | grep PrivateKey | awk '{print $2}')
+PUBLIC_KEY=$(echo "$KEYPAIR" | grep PublicKey | awk '{print $2}')
+SHORT_ID=$(/usr/local/bin/sing-box generate rand --hex 4)
+SERVER_IP=$(curl -s4m5 icanhazip.com || curl -s6m5 icanhazip.com)
 
-# 生成UUID
-UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "1e9b1c6b-2a1d-4e8f-9c7d-6b8a5f4e3d2c")
-PASS=$(head -c 12 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
-PORT1=10086
-PORT2=10087
-PORT3=10088
+# 分配端口 (使用更稳妥的赋值方式防止出错)
+PORTS=$(shuf -i 10000-65000 -n 5)
+P_VLESS=$(echo "$PORTS" | sed -n '1p')
+P_VMESS=$(echo "$PORTS" | sed -n '2p')
+P_HY2=$(echo "$PORTS" | sed -n '3p')
+P_TUIC=$(echo "$PORTS" | sed -n '4p')
+P_SOCKS=$(echo "$PORTS" | sed -n '5p')
 
-# 生成私钥和短ID
-PRIVATE_KEY=$(openssl rand -base64 32 2>/dev/null || echo "aK1I4A1e6prmZ7jJ7tR7zQJqN9vQ8qJ0xN8vD2eF5rC6tH3qM")
-SHORT_ID=$(openssl rand -hex 4 2>/dev/null || echo "0123456789abcdef")
+# 生成自签证书
+openssl ecparam -genkey -name prime256v1 -out /etc/sing-box/private.key
+openssl req -new -x509 -days 365 -key /etc/sing-box/private.key -out /etc/sing-box/cert.pem -subj "/CN=www.bing.com" >/dev/null 2>&1
 
-cat > /etc/singbox/config.json <<EOF
+echo -e "[4/5] 正在写入配置文件..."
+# 这里的 SK5 账号密码已硬编码为 123
+cat > /etc/sing-box/config.json <<EOF
 {
-  "log": {"level": "info"},
+  "log": { "level": "info" },
   "inbounds": [
     {
-      "type": "vless",
-      "tag": "vless-in",
-      "listen": "0.0.0.0",
-      "listen_port": $PORT1,
-      "users": [{"uuid": "$UUID", "flow": "xtls-rprx-vision"}],
+      "type": "vless", "tag": "vless-in", "listen": "::", "listen_port": $P_VLESS,
+      "users": [ { "uuid": "$UUID", "flow": "xtls-rprx-vision" } ],
       "tls": {
-        "enabled": true,
-        "server_name": "www.apple.com",
-        "reality": {
-          "enabled": true,
-          "handshake": {"server": "www.apple.com", "server_port": 443},
-          "private_key": "$PRIVATE_KEY",
-          "short_id": ["$SHORT_ID"]
-        }
+        "enabled": true, "server_name": "apple.com",
+        "reality": { "enabled": true, "handshake": { "server": "apple.com", "server_port": 443 }, "private_key": "$PRIVATE_KEY", "short_id": ["$SHORT_ID"] }
       }
     },
     {
-      "type": "hysteria2",
-      "tag": "hy2-in",
-      "listen": "0.0.0.0",
-      "listen_port": $PORT2,
-      "users": [{"password": "$PASS"}]
+      "type": "vmess", "tag": "vmess-in", "listen": "::", "listen_port": $P_VMESS,
+      "users": [ { "uuid": "$UUID", "alterId": 0 } ],
+      "transport": { "type": "ws", "path": "/$UUID" }
     },
     {
-      "type": "vmess",
-      "tag": "vmess-in",
-      "listen": "0.0.0.0",
-      "listen_port": $PORT3,
-      "users": [{"uuid": "$UUID", "alterId": 0}],
-      "transport": {"type": "ws", "path": "/video"}
+      "type": "hysteria2", "tag": "hy2-in", "listen": "::", "listen_port": $P_HY2,
+      "users": [ { "password": "$UUID" } ],
+      "ignore_client_bandwidth": false,
+      "tls": { "enabled": true, "alpn": ["h3"], "certificate_path": "/etc/sing-box/cert.pem", "key_path": "/etc/sing-box/private.key" }
+    },
+    {
+      "type": "tuic", "tag": "tuic-in", "listen": "::", "listen_port": $P_TUIC,
+      "users": [ { "uuid": "$UUID", "password": "$UUID" } ],
+      "congestion_control": "bbr",
+      "tls": { "enabled": true, "alpn": ["h3"], "certificate_path": "/etc/sing-box/cert.pem", "key_path": "/etc/sing-box/private.key" }
+    },
+    {
+      "type": "socks", "tag": "socks-in", "listen": "::", "listen_port": $P_SOCKS,
+      "users": [ { "username": "123", "password": "123" } ]
     }
   ],
-  "outbounds": [{"type": "direct", "tag": "direct"}]
+  "outbounds": [ { "type": "direct" } ]
 }
 EOF
 
-# 4. 创建服务
-echo -e "${BLUE}[4/8]${NC} 创建服务..."
-cat > /etc/systemd/system/singbox.service <<EOF
+echo -e "[5/5] 正在启动并检查 Sing-box 服务状态..."
+cat > /etc/systemd/system/sing-box.service <<EOF
 [Unit]
-Description=Sing-box Proxy Service
+Description=sing-box service
 After=network.target
 
 [Service]
-Type=simple
-User=root
-ExecStart=/usr/local/bin/sing-box run -c /etc/singbox/config.json
-Restart=always
+ExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json
+Restart=on-failure
 RestartSec=3
+LimitNOFILE=infinity
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable singbox --now > /dev/null 2>&1
+systemctl enable --now sing-box >/dev/null 2>&1
+sleep 2
 
-# 5. 关闭所有防火墙
-echo -e "${BLUE}[5/8]${NC} 关闭防火墙..."
-# 停止防火墙服务
-systemctl stop firewalld 2>/dev/null || true
-systemctl disable firewalld 2>/dev/null || true
-systemctl mask firewalld 2>/dev/null || true
-
-# 停止ufw
-ufw disable 2>/dev/null || true
-systemctl stop ufw 2>/dev/null || true
-systemctl disable ufw 2>/dev/null || true
-
-# 清空iptables
-iptables -F 2>/dev/null || true
-iptables -X 2>/dev/null || true
-iptables -t nat -F 2>/dev/null || true
-iptables -t mangle -F 2>/dev/null || true
-iptables -P INPUT ACCEPT 2>/dev/null || true
-iptables -P FORWARD ACCEPT 2>/dev/null || true
-iptables -P OUTPUT ACCEPT 2>/dev/null || true
-
-# 6. 网络优化
-echo -e "${BLUE}[6/8]${NC} 优化网络..."
-# 开启BBR
-echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-
-# TCP优化
-cat >> /etc/sysctl.conf <<EOF
-net.ipv4.tcp_fastopen=3
-net.ipv4.tcp_tw_reuse=1
-net.ipv4.tcp_keepalive_time=600
-net.ipv4.tcp_max_syn_backlog=8192
-net.core.rmem_max=16777216
-net.core.wmem_max=16777216
-net.ipv4.tcp_rmem=4096 87380 16777216
-net.ipv4.tcp_wmem=4096 16384 16777216
-net.ipv4.ip_local_port_range=1024 65535
-EOF
-
-sysctl -p > /dev/null 2>&1 || true
-
-# 7. 等待服务启动
-echo -e "${BLUE}[7/8]${NC} 启动服务..."
-sleep 3
-
-# 检查服务状态
-if systemctl is-active --quiet singbox; then
-    echo -e "${GREEN}[✓] 服务启动成功${NC}"
-else
-    # 尝试重启
-    systemctl restart singbox
-    sleep 2
+if ! systemctl is-active --quiet sing-box; then
+    echo -e "\n\033[31m启动失败！\033[0m排查日志如下："
+    journalctl -u sing-box -n 15 --no-pager
+    exit 1
 fi
 
-# 8. 获取IP和显示结果
-echo -e "${BLUE}[8/8]${NC} 生成链接..."
-IP=$(curl -4 -s https://api.ipify.org || curl -6 -s https://api64.ipify.org || hostname -I | awk '{print $1}')
+clear
+echo "=========================================================="
+echo -e "\033[32m✅ 服务端部署成功！状态：运行中\033[0m"
+echo "满血版缓冲优化已加载，请测试延迟表现。"
+echo "=========================================================="
+echo -e "\n\033[33m1. Vless-Reality (最推荐)\033[0m"
+echo "vless://$UUID@$SERVER_IP:$P_VLESS?encryption=none&flow=xtls-rprx-vision&security=reality&sni=apple.com&fp=chrome&pbk=$PUBLIC_KEY&sid=$SHORT_ID&type=tcp&headerType=none#Vless-Reality"
 
-# 输出结果
-echo ""
-echo "========================================"
-echo "🎉 安装完成！"
-echo "========================================"
-echo "服务器IP: $IP"
-echo ""
+echo -e "\n\033[33m2. Vmess-WS\033[0m"
+VMESS_JSON="{\"add\":\"$SERVER_IP\",\"aid\":\"0\",\"host\":\"\",\"id\":\"$UUID\",\"net\":\"ws\",\"path\":\"/$UUID\",\"port\":\"$P_VMESS\",\"ps\":\"Vmess-WS\",\"tls\":\"\",\"type\":\"none\",\"v\":\"2\"}"
+echo "vmess://$(echo -n "$VMESS_JSON" | base64 -w 0)"
 
-# 1. Vless-reality 链接
-echo "🔗 Vless-reality (推荐):"
-echo "vless://${UUID}@${IP}:${PORT1}?type=tcp&security=reality&sni=www.apple.com&fp=chrome&pbk=${PRIVATE_KEY:0:43}&sid=${SHORT_ID}&flow=xtls-rprx-vision#Singbox-${IP}"
-echo ""
+echo -e "\n\033[33m3. Hysteria-2 (需开启允许不安全证书)\033[0m"
+echo "hysteria2://$UUID@$SERVER_IP:$P_HY2?insecure=1&sni=www.bing.com&alpn=h3#Hysteria2"
 
-# 2. Hysteria2 链接
-echo "🔗 Hysteria2 (高速):"
-echo "hysteria2://${PASS}@${IP}:${PORT2}/?insecure=1&sni=www.apple.com#Hysteria2-${IP}"
-echo ""
+echo -e "\n\033[33m4. Tuic-v5 (需开启允许不安全证书)\033[0m"
+echo "tuic://$UUID:$UUID@$SERVER_IP:$P_TUIC?congestion_control=bbr&udp_relay_mode=native&alpn=h3&sni=www.bing.com&allow_insecure=1&allowInsecure=1#Tuic5"
 
-# 3. Vmess 链接
-echo "🔗 Vmess-WS (备用):"
-VMESS_CONFIG=$(cat <<EOF
-{
-  "v": "2",
-  "ps": "Singbox-Vmess-${IP}",
-  "add": "${IP}",
-  "port": "${PORT3}",
-  "id": "${UUID}",
-  "aid": "0",
-  "net": "ws",
-  "type": "none",
-  "host": "",
-  "path": "/video",
-  "tls": "none"
-}
-EOF
-)
-BASE64_CONFIG=$(echo "$VMESS_CONFIG" | base64 | tr -d '\n')
-echo "vmess://${BASE64_CONFIG}"
-echo ""
-
-# 4. 一键导入命令
-echo "📋 一键导入命令:"
-echo "bash <(curl -s https://raw.githubusercontent.com/SagerNet/sing-box/main/script/install.sh) --config /etc/singbox/config.json"
-echo ""
-
-# 5. 测试命令
-echo "📊 测试连接:"
-echo "curl -x socks5h://127.0.0.1:1080 http://www.google.com"
-echo ""
-
-# 6. 管理命令
-echo "🛠️  管理命令:"
-echo "systemctl status singbox    # 查看状态"
-echo "systemctl restart singbox   # 重启"
-echo "systemctl stop singbox      # 停止"
-echo "journalctl -u singbox -f    # 查看日志"
-echo ""
-
-# 7. 配置文件位置
-echo "📁 配置文件: /etc/singbox/config.json"
-echo ""
-
-# 8. 检查端口
-echo "🔍 检查端口监听:"
-netstat -tlnp | grep -E ":${PORT1}|:${PORT2}|:${PORT3}" || echo "正在启动中..."
-echo ""
-
-echo "========================================"
-echo "✅ 所有链接已生成，可直接复制使用！"
-echo "========================================"
-
-# 最后确保服务正常运行
-systemctl restart singbox > /dev/null 2>&1 &
+echo -e "\n\033[33m5. Socks5 (已修改为纯明文，账号密码 123)\033[0m"
+echo "socks5://123:123@$SERVER_IP:$P_SOCKS#Socks5"
+echo "=========================================================="
