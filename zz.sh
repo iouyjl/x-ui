@@ -225,25 +225,25 @@ geo 文件：已更新至最新
 ------------------- 各协议连接信息 -------------------
 
 1️⃣ VLESS (TCP)
-端口：10000
-UUID：${UUID}
-链接：${VLESS_LINK}
+端口： 10000
+UUID： ${UUID}
+链接： ${VLESS_LINK}
 
 2️⃣ VMess (TCP)
-端口：20000
-UUID：${UUID}
-链接：${VMESS_LINK}
+端口： 20000
+UUID： ${UUID}
+链接： ${VMESS_LINK}
 
 3️⃣ Shadowsocks (TCP)
-端口：30000
-密码：${SS_PASS}
-加密：aes-256-gcm
-链接：${SS_LINK}
+端口： 30000
+密码： ${SS_PASS}
+加密： aes-256-gcm
+链接： ${SS_LINK}
 
 4️⃣ SOCKS5 (TCP/UDP)
-端口：40000
-用户名：user1
-密码：${SS_PASS}
+端口： 40000
+用户名： user1
+密码： ${SS_PASS}
 
 ------------------------------------------------------
 🌐 所有入站均已开启 UDP 转发
