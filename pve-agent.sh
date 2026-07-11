@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PVE Agent 一键部署脚本（改进版）
+# PVE Agent 一键部署脚本（修正版）
 # 用法:
 #   sudo bash pve-agent.sh [HUB_URL_or_IP] [--ws] [RELEASE_TAG]
 # 示例:
@@ -17,7 +17,6 @@ REPO="iouyjl/x-ui"
 BIN_PATH="/usr/local/bin/pve-agent"
 ENV_FILE="/etc/default/pve-agent"
 SERVICE_FILE="/etc/systemd/system/pve-agent.service"
-SERVICE_USER="pve-agent"
 
 # 简单的输出函数
 err() { echo "ERROR: $*" >&2; }
@@ -72,6 +71,14 @@ if ! command -v systemctl >/dev/null 2>&1; then
   exit 3
 fi
 
+# ==========================================
+# 【修复 1】：在下载和覆盖前，强制停止可能正在运行的服务
+# ==========================================
+if systemctl is-active --quiet pve-agent; then
+    info "检测到旧版 pve-agent 正在运行，正在停止服务以便更新..."
+    systemctl stop pve-agent || true
+fi
+
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/pve-agent"
 
 # 下载到临时文件并原子安装
@@ -91,16 +98,7 @@ if [ ! -s "$tmpfile" ]; then
 fi
 
 install -m 0755 "$tmpfile" "$BIN_PATH"
-info "已安装二进制到 $BIN_PATH"
-
-# 创建系统用户（降权运行）
-if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
-  info "创建系统用户 $SERVICE_USER ..."
-  useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER" || true
-fi
-
-chown root:root "$BIN_PATH"
-chmod 0755 "$BIN_PATH"
+info "已成功替换并安装二进制到 $BIN_PATH"
 
 # 生成/备份配置文件
 if [ -f "$ENV_FILE" ]; then
@@ -122,6 +120,9 @@ if [ -f "$SERVICE_FILE" ]; then
   cp -a "$SERVICE_FILE" "${SERVICE_FILE}.bak.$(date +%s)"
 fi
 
+# ==========================================
+# 【修复 2】：彻底移除降权用户配置和所有安全沙箱限制
+# ==========================================
 cat > "$SERVICE_FILE" <<'EOF'
 [Unit]
 Description=PVE Monitor Agent
@@ -129,33 +130,19 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/default/pve-agent
-User=pve-agent
-Group=pve-agent
 WorkingDirectory=/var/lib/pve-agent
-RuntimeDirectory=pve-agent
-RuntimeDirectoryMode=0750
 ExecStart=/usr/local/bin/pve-agent
 Restart=on-failure
 RestartSec=5
 StartLimitBurst=5
 StartLimitIntervalSec=60
-# 基本沙箱和安全性增强
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=full
-ProtectHome=yes
-PrivateDevices=yes
-# 如需更细粒度的能力，取消注释并调整如下项
-# CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# 确保工作目录存在并设置权限
+# 确保工作目录存在
 mkdir -p /var/lib/pve-agent
-chown "$SERVICE_USER":"$SERVICE_USER" /var/lib/pve-agent
-chmod 0750 /var/lib/pve-agent
 
 info "正在 reload systemd，启用并启动服务..."
 systemctl daemon-reload
