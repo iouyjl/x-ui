@@ -39,18 +39,18 @@ done
 
 if [ -z "$ARG1" ]; then
   HUB_IP="$DEFAULT_HUB_IP"
-  SCHEME="wss"
+  SCHEME="ws"
   HUB_URL="${SCHEME}://${HUB_IP}:8080/push"
 elif [[ "$ARG1" == *"://"* ]]; then
   HUB_URL="$ARG1"
 else
   HUB_IP="$ARG1"
-  SCHEME="wss"
+  SCHEME="ws"
   HUB_URL="${SCHEME}://${HUB_IP}:8080/push"
 fi
 
 if [ "$FORCE_WS" = true ]; then
-  HUB_URL="${HUB_URL/#wss:/ws:}"
+  HUB_URL="${HUB_URL/#ws:/ws:}"
 fi
 
 info "使用 HUB URL: $HUB_URL"
