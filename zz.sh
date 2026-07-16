@@ -89,7 +89,7 @@ EOF
 
 # ---------- 生成随机凭证 ----------
 UUID=$(cat /proc/sys/kernel/random/uuid)
-SS_PASS=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 24 | head -n1)
+SS_PASS=123
 
 # ---------- 写入完整 JSON 配置（同上，省略节省篇幅）----------
 cat > /etc/xrayLL/config.json <<'EOF'
